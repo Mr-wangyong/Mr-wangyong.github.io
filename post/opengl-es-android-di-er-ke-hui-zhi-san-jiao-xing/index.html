@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" >
+
+<title>OpenGL es Android 第二课 绘制三角形 | mrwang的编程之旅</title>
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="shortcut icon" href="https://mr-wangyong.github.io//favicon.ico?v=1666594550188">
+<link rel="stylesheet" href="https://mr-wangyong.github.io//styles/main.css">
+
+
+  
+    <link rel="stylesheet" href="https://unpkg.com/gitalk/dist/gitalk.css" />
+  
+
+  
+
+
+<link rel="stylesheet" href="https://unpkg.com/aos@next/dist/aos.css" />
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+
+
+
+    <meta name="description" content="有了第一篇的基础，现在开始着手绘制一个三角形，
+先总结一下 OpenGL es 绘制的基本流程
+1. 编写 vertex Shader 和 Fragment shader 的代码
+2. 编译 vertex Shader和Fragment s..." />
+    <meta name="keywords" content="openGL" />
+  </head>
+  <body>
+    <div id="app" class="main">
+
+      <div class="sidebar" :class="{ 'full-height': menuVisible }">
+  <div class="top-container" data-aos="fade-right">
+    <div class="top-header-container">
+      <a class="site-title-container" href="https://mr-wangyong.github.io/">
+        <img src="https://mr-wangyong.github.io//images/avatar.png?v=1666594550188" class="site-logo">
+        <h1 class="site-title">mrwang的编程之旅</h1>
+      </a>
+      <div class="menu-btn" @click="menuVisible = !menuVisible">
+        <div class="line"></div>
+      </div>
+    </div>
+    <div>
+      
+        
+          <a href="/" class="site-nav">
+            首页
+          </a>
+        
+      
+        
+          <a href="/archives" class="site-nav">
+            归档
+          </a>
+        
+      
+        
+          <a href="/tags" class="site-nav">
+            标签
+          </a>
+        
+      
+        
+          <a href="/post/about" class="site-nav">
+            关于
+          </a>
+        
+      
+    </div>
+  </div>
+  <div class="bottom-container" data-aos="flip-up" data-aos-offset="0">
+    <div class="social-container">
+      
+        
+          <a class="social-link" href="https://github.com/Mr-wangyong" target="_blank">
+            <i class="fab fa-github"></i>
+          </a>
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    </div>
+    <div class="site-description">
+      好学若饥，谦卑若愚
+    </div>
+    <div class="site-footer">
+      Powered by <a href="https://github.com/Mr-wangyong" target="_blank">mrwang github</a> | <a class="rss" href="https://mr-wangyong.github.io//atom.xml" target="_blank">RSS</a>
+    </div>
+  </div>
+</div>
+
+
+      <div class="main-container">
+        <div class="content-container" data-aos="fade-up">
+          <div class="post-detail">
+            <h2 class="post-title">OpenGL es Android 第二课 绘制三角形</h2>
+            <div class="post-date">2021-06-01</div>
+            
+              <div class="feature-container" style="background-image: url('https://mr-wangyong.github.io//post-images/opengl-es-android-di-er-ke-hui-zhi-san-jiao-xing.jpeg')">
+              </div>
+            
+            <div class="post-content" v-pre>
+              <p>有了<a href="https://www.jianshu.com/p/e8472905cc97">第一篇</a>的基础，现在开始着手绘制一个三角形，<br>
+先总结一下 OpenGL es 绘制的基本流程</p>
+<pre><code>1. 编写 vertex Shader 和 Fragment shader 的代码
+2. 编译 vertex Shader和Fragment shader
+3. 创建 programs 对象，连接两个 shader
+4. onDrawFrame 中，绘制 shader
+</code></pre>
+<p>我们按照上面的步骤一步步的来</p>
+<h3 id="第一步-编写shader">第一步  编写shader</h3>
+<h5 id="顶点着色器vertex-shader">顶点着色器(vertex shader)</h5>
+<pre><code> attribute vec4 vPosition;
+ void main() {
+     gl_Position = vPosition;
+ }
+</code></pre>
+<blockquote>
+<p>发现比上一篇的的多了一个东西，其实就是多定义了一个成员变量vPosition，其中 attribute表示成员变量，vec4表示类型为<a href="https://baike.baidu.com/item/%E9%BD%90%E6%AC%A1%E5%9D%90%E6%A0%87">齐次坐标</a>，也就是说gl_Position这个变量的内容取自vPosition这个变量，而这个变量在后面会被我们 Java 层赋值</p>
+</blockquote>
+<h5 id="片元着色器">片元着色器</h5>
+<pre><code> uniform vec4 vColor;
+ void main() {
+     gl_FragColor = vColor;
+ }
+</code></pre>
+<blockquote>
+<p>原理和上面一致，定义变量让外界赋值</p>
+</blockquote>
+<h3 id="第二步-处理-shader">第二步  处理 shader</h3>
+<p>这一步在步骤十分固定 样板代码</p>
+<ol>
+<li>设置背景</li>
+</ol>
+<pre><code>GLES20.glClearColor(0.0f, 0.0f, 0.0f, 1.0f)
+</code></pre>
+<ol start="2">
+<li>编译 链接 处理 shader 源码</li>
+</ol>
+<pre><code>val vertexShader = loadShader(GLES20.GL_VERTEX_SHADER,
+                VERTEX_SHADER)
+val fragmentShader = loadShader(GLES20.GL_FRAGMENT_SHADER,FRAGMENT_SHADER)
+//创建一个空的OpenGLES程序
+mProgram = GLES20.glCreateProgram()
+//将顶点着色器加入到程序
+GLES20.glAttachShader(mProgram, vertexShader)
+//将片元着色器加入到程序中
+GLES20.glAttachShader(mProgram, fragmentShader)
+//连接到着色器程序
+GLES20.glLinkProgram(mProgram)
+</code></pre>
+<pre><code>fun loadShader(type: Int, shaderString: String): Int {
+        val shader = GLES20.glCreateShader(type)
+        GLES20.glShaderSource(shader, shaderString)
+        GLES20.glCompileShader(shader)
+        return shader
+}
+</code></pre>
+<ol start="3">
+<li>把图形坐标点数据转化成 openGL 可以识别的格式</li>
+</ol>
+<pre><code>//申请底层空间
+val bb = ByteBuffer.allocateDirect(triangleCoords.size * 4)
+//数据硬件对齐
+bb.order(ByteOrder.nativeOrder())
+//将坐标数据转换为FloatBuffer，用以传入给OpenGL ES程序
+vertexBuffer = bb.asFloatBuffer()
+vertexBuffer.put(triangleCoords)
+vertexBuffer.position(0)
+</code></pre>
+<ol start="4">
+<li>最后 绘制三角形</li>
+</ol>
+<p>设置 shader</p>
+<pre><code>GLES20.glUseProgram(mProgram)
+</code></pre>
+<p>更改 Vertex Shader的 里面 <code>vPosition</code> 的值，把三角形的顶点数值赋值上去</p>
+<pre><code>//获取顶点着色器的vPosition成员句柄
+val mPositionHandle = GLES20.glGetAttribLocation(mProgram, &quot;vPosition&quot;)
+//启用三角形顶点的句柄
+GLES20.glEnableVertexAttribArray(mPositionHandle)
+//准备三角形的坐标数据
+GLES20.glVertexAttribPointer(mPositionHandle, COORDS_PER_VERTEX,
+        GLES20.GL_FLOAT, false,
+        vertexStride, vertexBuffer)
+</code></pre>
+<p>同理，设置 Fragment shader 里面 <code>vColor</code> 的值</p>
+<pre><code>//获取片元着色器的vColor成员的句柄
+val mColorHandle = GLES20.glGetUniformLocation(mProgram, &quot;vColor&quot;)
+//设置绘制三角形的颜色
+GLES20.glUniform4fv(mColorHandle, 1, color, 0)
+</code></pre>
+<p>绘制三角形</p>
+<pre><code>//绘制三角形
+GLES20.glDrawArrays(GLES20.GL_TRIANGLES, 0, vertexCount)
+</code></pre>
+<p>回收资源 回收顶点数组引用</p>
+<pre><code>//禁止顶点数组的句柄
+GLES20.glDisableVertexAttribArray(mPositionHandle)
+</code></pre>
+<p>第一个参数表示绘制方式,定义如下</p>
+<pre><code>int GL_POINTS       //将传入的顶点坐标作为单独的点绘制
+int GL_LINES        //将传入的坐标作为单独线条绘制，ABCDEFG六个顶点，绘制AB、CD、EF三条线
+int GL_LINE_STRIP   //将传入的顶点作为折线绘制，ABCD四个顶点，绘制AB、BC、CD三条线
+int GL_LINE_LOOP    //将传入的顶点作为闭合折线绘制，ABCD四个顶点，绘制AB、BC、CD、DA四条线。
+int GL_TRIANGLES    //将传入的顶点作为单独的三角形绘制，ABCDEF绘制ABC,DEF两个三角形
+int GL_TRIANGLE_FAN    //将传入的顶点作为扇面绘制，ABCDEF绘制ABC、ACD、ADE、AEF四个三角形
+int GL_TRIANGLE_STRIP   //将传入的顶点作为三角条带绘制，ABCDEF绘制ABC,BCD,CDE,DEF四个三角形
+</code></pre>
+<p>5.贴上完整代码</p>
+<pre><code>open class Triangle : Shape() {
+    private val VERTEX_SHADER =
+            &quot;attribute vec4 vPosition;\n&quot; +
+                    &quot; void main() {\n&quot; +
+                    &quot;     gl_Position = vPosition;\n&quot; +
+                    &quot; }&quot;
+
+
+    //gl_FragColor是fragment shader的内置变量，用于指定当前顶点的颜色，
+    // 四个分量（r, g, b, a）。这里是想指定为红色，不透明。
+    private val FRAGMENT_SHADER =
+            &quot;precision mediump float;\n&quot; +
+                    &quot; uniform vec4 vColor;\n&quot; +
+                    &quot; void main() {\n&quot; +
+                    &quot;     gl_FragColor = vColor;\n&quot; +
+                    &quot; }&quot;
+    private var triangleCoords = floatArrayOf(0.5f, 0.5f, 0.0f, // top
+            -0.5f, -0.5f, 0.0f, // bottom left
+            0.5f, -0.5f, 0.0f  // bottom right
+    )
+
+    private var color = floatArrayOf(1.0f, 1.0f, 1.0f, 1.0f) //白色
+
+    //顶点之间的偏移量
+    private val vertexStride = COORDS_PER_VERTEX * 4 // 每个顶点四个字节
+    //顶点个数
+    private val vertexCount = triangleCoords.size / COORDS_PER_VERTEX
+
+    private var mProgram: Int = 0
+    private lateinit var  vertexBuffer:FloatBuffer
+
+    override fun onSurfaceCreated(gl: GL10?, config: EGLConfig?) {
+        //将背景设置为灰色
+        GLES20.glClearColor(0.5f, 0.5f, 0.5f, 1.0f)
+        //申请底层空间
+        val bb = ByteBuffer.allocateDirect(
+                triangleCoords.size * 4)
+        //数据硬件对齐
+        bb.order(ByteOrder.nativeOrder())
+        //将坐标数据转换为FloatBuffer，用以传入给OpenGL ES程序
+        vertexBuffer = bb.asFloatBuffer()
+        vertexBuffer.put(triangleCoords)
+        vertexBuffer.position(0)
+
+        val vertexShader = loadShader(GLES20.GL_VERTEX_SHADER,
+                VERTEX_SHADER)
+        val fragmentShader = loadShader(GLES20.GL_FRAGMENT_SHADER,
+                FRAGMENT_SHADER)
+
+        //创建一个空的OpenGLES程序
+        mProgram = GLES20.glCreateProgram()
+        //将顶点着色器加入到程序
+        GLES20.glAttachShader(mProgram, vertexShader)
+        //将片元着色器加入到程序中
+        GLES20.glAttachShader(mProgram, fragmentShader)
+        //连接到着色器程序
+        GLES20.glLinkProgram(mProgram)
+    }
+
+
+    override fun onSurfaceChanged(gl: GL10?, width: Int, height: Int) {
+        GLES20.glViewport(0, 0, width, height)
+    }
+
+    override fun onDrawFrame(gl: GL10?) {
+
+        GLES20.glUseProgram(mProgram)
+
+        //获取顶点着色器的vPosition成员句柄
+        val mPositionHandle = GLES20.glGetAttribLocation(mProgram, &quot;vPosition&quot;)
+        //启用三角形顶点的句柄
+        GLES20.glEnableVertexAttribArray(mPositionHandle)
+        //准备三角形的坐标数据
+        GLES20.glVertexAttribPointer(mPositionHandle, COORDS_PER_VERTEX,
+                GLES20.GL_FLOAT, false,
+                vertexStride, vertexBuffer)
+
+
+        // 这里其实就是取出源码里面的 变量 进行赋值
+
+        //获取片元着色器的vColor成员的句柄
+        val mColorHandle = GLES20.glGetUniformLocation(mProgram, &quot;vColor&quot;)
+        //设置绘制三角形的颜色
+        GLES20.glUniform4fv(mColorHandle, 1, color, 0)
+        //绘制三角形
+        GLES20.glDrawArrays(GLES20.GL_TRIANGLES, 0, vertexCount)
+        //禁止顶点数组的句柄
+        GLES20.glDisableVertexAttribArray(mPositionHandle)
+    }
+
+}
+</code></pre>
+
+            </div>
+            
+              <div class="tag-container">
+                
+                  <a href="https://mr-wangyong.github.io/tag/https://mr-wangyong.github.io/post/opengl-es-android-di-yi-ke/" class="tag">
+                    openGL
+                  </a>
+                
+              </div>
+            
+            
+              <div class="next-post">
+                <div class="next">下一篇</div>
+                <a href="https://mr-wangyong.github.io/post/opengl-es-android-di-yi-ke/">
+                  <h3 class="post-title">
+                    OpenGL es Android 第一课
+                  </h3>
+                </a>
+              </div>
+            
+
+            
+              
+                <div id="gitalk-container" data-aos="fade-in"></div>
+              
+
+              
+            
+
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <script src="https://unpkg.com/aos@next/dist/aos.js"></script>
+<script type="application/javascript">
+
+AOS.init();
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+  <script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+  <script>
+    hljs.initHighlightingOnLoad()
+  </script>
+
+
+
+
+  
+    <script src="https://unpkg.com/gitalk/dist/gitalk.min.js"></script>
+    <script>
+
+      var gitalk = new Gitalk({
+        clientID: '',
+        clientSecret: '',
+        repo: '',
+        owner: '',
+        admin: [''],
+        id: (location.pathname).substring(0, 49),      // Ensure uniqueness and length less than 50
+        distractionFreeMode: false  // Facebook-like distraction free mode
+      })
+
+      gitalk.render('gitalk-container')
+
+    </script>
+  
+
+  
+
+
+
+
+  </body>
+</html>

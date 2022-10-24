@@ -1,0 +1,562 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+    <id>https://mr-wangyong.github.io/</id>
+    <title>mrwang的编程之旅</title>
+    <updated>2022-10-24T06:55:55.115Z</updated>
+    <generator>https://github.com/jpmonette/feed</generator>
+    <link rel="alternate" href="https://mr-wangyong.github.io/"/>
+    <link rel="self" href="https://mr-wangyong.github.io/atom.xml"/>
+    <subtitle>好学若饥，谦卑若愚</subtitle>
+    <logo>https://mr-wangyong.github.io/images/avatar.png</logo>
+    <icon>https://mr-wangyong.github.io/favicon.ico</icon>
+    <rights>All rights reserved 2022, mrwang的编程之旅</rights>
+    <entry>
+        <title type="html"><![CDATA[那年夏天]]></title>
+        <id>https://mr-wangyong.github.io/post/na-nian-xia-tian/</id>
+        <link href="https://mr-wangyong.github.io/post/na-nian-xia-tian/">
+        </link>
+        <updated>2022-10-24T06:07:18.000Z</updated>
+        <content type="html"><![CDATA[<p><img src="https://mr-wangyong.github.io//post-images/1666594188791.jpeg" alt="" loading="lazy"><br>
+还记得那年还在读初中，不记得到底是初几了，只是因为是住校，每隔两个星期才能放假1.5天，别问为啥还有半天，因为半天在路上，回到家了，家里电视正在放《天下第一》和《武林外传》，我还在和同学讨论哪部剧更好看，短暂的假期后很快就上学了，却不知，这是这辈子能看见的最好的两部剧了</p>
+]]></content>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[OpenGL es Android 第二课 绘制三角形]]></title>
+        <id>https://mr-wangyong.github.io/post/opengl-es-android-di-er-ke-hui-zhi-san-jiao-xing/</id>
+        <link href="https://mr-wangyong.github.io/post/opengl-es-android-di-er-ke-hui-zhi-san-jiao-xing/">
+        </link>
+        <updated>2021-06-01T10:24:57.000Z</updated>
+        <content type="html"><![CDATA[<p>有了<a href="https://www.jianshu.com/p/e8472905cc97">第一篇</a>的基础，现在开始着手绘制一个三角形，<br>
+先总结一下 OpenGL es 绘制的基本流程</p>
+<pre><code>1. 编写 vertex Shader 和 Fragment shader 的代码
+2. 编译 vertex Shader和Fragment shader
+3. 创建 programs 对象，连接两个 shader
+4. onDrawFrame 中，绘制 shader
+</code></pre>
+<p>我们按照上面的步骤一步步的来</p>
+<h3 id="第一步-编写shader">第一步  编写shader</h3>
+<h5 id="顶点着色器vertex-shader">顶点着色器(vertex shader)</h5>
+<pre><code> attribute vec4 vPosition;
+ void main() {
+     gl_Position = vPosition;
+ }
+</code></pre>
+<blockquote>
+<p>发现比上一篇的的多了一个东西，其实就是多定义了一个成员变量vPosition，其中 attribute表示成员变量，vec4表示类型为<a href="https://baike.baidu.com/item/%E9%BD%90%E6%AC%A1%E5%9D%90%E6%A0%87">齐次坐标</a>，也就是说gl_Position这个变量的内容取自vPosition这个变量，而这个变量在后面会被我们 Java 层赋值</p>
+</blockquote>
+<h5 id="片元着色器">片元着色器</h5>
+<pre><code> uniform vec4 vColor;
+ void main() {
+     gl_FragColor = vColor;
+ }
+</code></pre>
+<blockquote>
+<p>原理和上面一致，定义变量让外界赋值</p>
+</blockquote>
+<h3 id="第二步-处理-shader">第二步  处理 shader</h3>
+<p>这一步在步骤十分固定 样板代码</p>
+<ol>
+<li>设置背景</li>
+</ol>
+<pre><code>GLES20.glClearColor(0.0f, 0.0f, 0.0f, 1.0f)
+</code></pre>
+<ol start="2">
+<li>编译 链接 处理 shader 源码</li>
+</ol>
+<pre><code>val vertexShader = loadShader(GLES20.GL_VERTEX_SHADER,
+                VERTEX_SHADER)
+val fragmentShader = loadShader(GLES20.GL_FRAGMENT_SHADER,FRAGMENT_SHADER)
+//创建一个空的OpenGLES程序
+mProgram = GLES20.glCreateProgram()
+//将顶点着色器加入到程序
+GLES20.glAttachShader(mProgram, vertexShader)
+//将片元着色器加入到程序中
+GLES20.glAttachShader(mProgram, fragmentShader)
+//连接到着色器程序
+GLES20.glLinkProgram(mProgram)
+</code></pre>
+<pre><code>fun loadShader(type: Int, shaderString: String): Int {
+        val shader = GLES20.glCreateShader(type)
+        GLES20.glShaderSource(shader, shaderString)
+        GLES20.glCompileShader(shader)
+        return shader
+}
+</code></pre>
+<ol start="3">
+<li>把图形坐标点数据转化成 openGL 可以识别的格式</li>
+</ol>
+<pre><code>//申请底层空间
+val bb = ByteBuffer.allocateDirect(triangleCoords.size * 4)
+//数据硬件对齐
+bb.order(ByteOrder.nativeOrder())
+//将坐标数据转换为FloatBuffer，用以传入给OpenGL ES程序
+vertexBuffer = bb.asFloatBuffer()
+vertexBuffer.put(triangleCoords)
+vertexBuffer.position(0)
+</code></pre>
+<ol start="4">
+<li>最后 绘制三角形</li>
+</ol>
+<p>设置 shader</p>
+<pre><code>GLES20.glUseProgram(mProgram)
+</code></pre>
+<p>更改 Vertex Shader的 里面 <code>vPosition</code> 的值，把三角形的顶点数值赋值上去</p>
+<pre><code>//获取顶点着色器的vPosition成员句柄
+val mPositionHandle = GLES20.glGetAttribLocation(mProgram, &quot;vPosition&quot;)
+//启用三角形顶点的句柄
+GLES20.glEnableVertexAttribArray(mPositionHandle)
+//准备三角形的坐标数据
+GLES20.glVertexAttribPointer(mPositionHandle, COORDS_PER_VERTEX,
+        GLES20.GL_FLOAT, false,
+        vertexStride, vertexBuffer)
+</code></pre>
+<p>同理，设置 Fragment shader 里面 <code>vColor</code> 的值</p>
+<pre><code>//获取片元着色器的vColor成员的句柄
+val mColorHandle = GLES20.glGetUniformLocation(mProgram, &quot;vColor&quot;)
+//设置绘制三角形的颜色
+GLES20.glUniform4fv(mColorHandle, 1, color, 0)
+</code></pre>
+<p>绘制三角形</p>
+<pre><code>//绘制三角形
+GLES20.glDrawArrays(GLES20.GL_TRIANGLES, 0, vertexCount)
+</code></pre>
+<p>回收资源 回收顶点数组引用</p>
+<pre><code>//禁止顶点数组的句柄
+GLES20.glDisableVertexAttribArray(mPositionHandle)
+</code></pre>
+<p>第一个参数表示绘制方式,定义如下</p>
+<pre><code>int GL_POINTS       //将传入的顶点坐标作为单独的点绘制
+int GL_LINES        //将传入的坐标作为单独线条绘制，ABCDEFG六个顶点，绘制AB、CD、EF三条线
+int GL_LINE_STRIP   //将传入的顶点作为折线绘制，ABCD四个顶点，绘制AB、BC、CD三条线
+int GL_LINE_LOOP    //将传入的顶点作为闭合折线绘制，ABCD四个顶点，绘制AB、BC、CD、DA四条线。
+int GL_TRIANGLES    //将传入的顶点作为单独的三角形绘制，ABCDEF绘制ABC,DEF两个三角形
+int GL_TRIANGLE_FAN    //将传入的顶点作为扇面绘制，ABCDEF绘制ABC、ACD、ADE、AEF四个三角形
+int GL_TRIANGLE_STRIP   //将传入的顶点作为三角条带绘制，ABCDEF绘制ABC,BCD,CDE,DEF四个三角形
+</code></pre>
+<p>5.贴上完整代码</p>
+<pre><code>open class Triangle : Shape() {
+    private val VERTEX_SHADER =
+            &quot;attribute vec4 vPosition;\n&quot; +
+                    &quot; void main() {\n&quot; +
+                    &quot;     gl_Position = vPosition;\n&quot; +
+                    &quot; }&quot;
+
+
+    //gl_FragColor是fragment shader的内置变量，用于指定当前顶点的颜色，
+    // 四个分量（r, g, b, a）。这里是想指定为红色，不透明。
+    private val FRAGMENT_SHADER =
+            &quot;precision mediump float;\n&quot; +
+                    &quot; uniform vec4 vColor;\n&quot; +
+                    &quot; void main() {\n&quot; +
+                    &quot;     gl_FragColor = vColor;\n&quot; +
+                    &quot; }&quot;
+    private var triangleCoords = floatArrayOf(0.5f, 0.5f, 0.0f, // top
+            -0.5f, -0.5f, 0.0f, // bottom left
+            0.5f, -0.5f, 0.0f  // bottom right
+    )
+
+    private var color = floatArrayOf(1.0f, 1.0f, 1.0f, 1.0f) //白色
+
+    //顶点之间的偏移量
+    private val vertexStride = COORDS_PER_VERTEX * 4 // 每个顶点四个字节
+    //顶点个数
+    private val vertexCount = triangleCoords.size / COORDS_PER_VERTEX
+
+    private var mProgram: Int = 0
+    private lateinit var  vertexBuffer:FloatBuffer
+
+    override fun onSurfaceCreated(gl: GL10?, config: EGLConfig?) {
+        //将背景设置为灰色
+        GLES20.glClearColor(0.5f, 0.5f, 0.5f, 1.0f)
+        //申请底层空间
+        val bb = ByteBuffer.allocateDirect(
+                triangleCoords.size * 4)
+        //数据硬件对齐
+        bb.order(ByteOrder.nativeOrder())
+        //将坐标数据转换为FloatBuffer，用以传入给OpenGL ES程序
+        vertexBuffer = bb.asFloatBuffer()
+        vertexBuffer.put(triangleCoords)
+        vertexBuffer.position(0)
+
+        val vertexShader = loadShader(GLES20.GL_VERTEX_SHADER,
+                VERTEX_SHADER)
+        val fragmentShader = loadShader(GLES20.GL_FRAGMENT_SHADER,
+                FRAGMENT_SHADER)
+
+        //创建一个空的OpenGLES程序
+        mProgram = GLES20.glCreateProgram()
+        //将顶点着色器加入到程序
+        GLES20.glAttachShader(mProgram, vertexShader)
+        //将片元着色器加入到程序中
+        GLES20.glAttachShader(mProgram, fragmentShader)
+        //连接到着色器程序
+        GLES20.glLinkProgram(mProgram)
+    }
+
+
+    override fun onSurfaceChanged(gl: GL10?, width: Int, height: Int) {
+        GLES20.glViewport(0, 0, width, height)
+    }
+
+    override fun onDrawFrame(gl: GL10?) {
+
+        GLES20.glUseProgram(mProgram)
+
+        //获取顶点着色器的vPosition成员句柄
+        val mPositionHandle = GLES20.glGetAttribLocation(mProgram, &quot;vPosition&quot;)
+        //启用三角形顶点的句柄
+        GLES20.glEnableVertexAttribArray(mPositionHandle)
+        //准备三角形的坐标数据
+        GLES20.glVertexAttribPointer(mPositionHandle, COORDS_PER_VERTEX,
+                GLES20.GL_FLOAT, false,
+                vertexStride, vertexBuffer)
+
+
+        // 这里其实就是取出源码里面的 变量 进行赋值
+
+        //获取片元着色器的vColor成员的句柄
+        val mColorHandle = GLES20.glGetUniformLocation(mProgram, &quot;vColor&quot;)
+        //设置绘制三角形的颜色
+        GLES20.glUniform4fv(mColorHandle, 1, color, 0)
+        //绘制三角形
+        GLES20.glDrawArrays(GLES20.GL_TRIANGLES, 0, vertexCount)
+        //禁止顶点数组的句柄
+        GLES20.glDisableVertexAttribArray(mPositionHandle)
+    }
+
+}
+</code></pre>
+]]></content>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[OpenGL es Android 第一课]]></title>
+        <id>https://mr-wangyong.github.io/post/opengl-es-android-di-yi-ke/</id>
+        <link href="https://mr-wangyong.github.io/post/opengl-es-android-di-yi-ke/">
+        </link>
+        <updated>2021-06-01T10:05:49.000Z</updated>
+        <content type="html"><![CDATA[<blockquote>
+<p>官网镇楼<br>
+<a href="https://developer.android.com/guide/topics/graphics/opengl">OpenGL 简介</a></p>
+</blockquote>
+<h3 id="opengl-与-opengl-es-区别">openGL 与 OpenGL ES 区别</h3>
+<blockquote>
+<p>OpenGL  跨平台的高性能3D渲染API</p>
+</blockquote>
+<blockquote>
+<p>openGL ES（OpenGL for Embedded Systems）是 OpenGL 的子集，针对移动设备及嵌入式设备设计的</p>
+</blockquote>
+<h3 id="opengl-版本">OpenGL 版本</h3>
+<ol>
+<li>1.0旧版本，API1 支持 基本废弃</li>
+<li>2.0 Android 2.2 (API level 8)支持，相对于1.0版本改动很大，不兼容OpenGL ES 1.x，易用性得到提升，常用的都是这个版本，</li>
+<li>3.0 Android 4.3 (API level 18) 支持，向下兼容OpenGL ES 2.x</li>
+</ol>
+<p>题外话：OpenGL2.0/3.0 中使用 openGL 都是static静态方法，比如</p>
+<pre><code>GLES20.glClearColor(0f, 0f, 0f, 0f)
+</code></pre>
+<p>也可以是 GLES10/11/30/31/32 其中的数字就代表 openGL 的版本，看着设计，我只想说，碉堡了！！</p>
+<hr>
+<h2 id="基本概念">基本概念</h2>
+<ol>
+<li>Android 中OpenGL 承载为 GLSurfaceView，里面提供一个openGL 开发环境，上面说过openGL 方法调用都是static 静态的，但是只能在 Render 的 三个生命周期内调用</li>
+</ol>
+<pre><code>onSurfaceCreated
+onSurfaceChanged
+onDrawFrame
+</code></pre>
+<ol start="2">
+<li>着色器(Shader)：是在GPU上运行的小程序。从名称可以看出，可通过处理它们来处理顶点。此程序使用<a href="https://de.wikipedia.org/wiki/OpenGL_ES_Shading_Language">openGL ES Shading language</a> 语言来编写。它是一个描述顶点或像素特性的简单程序，分为顶点着色器和片元着色器。</li>
+<li>顶点着色器(vertex Shader)：指定几何形状的顶点，比如三角形的三个点</li>
+<li>片元着色器(fragment shader):指定每个顶点之间的着色</li>
+</ol>
+<blockquote>
+<p>顶点着色器和片元着色器是一一对应的，一个 GL 程序必须至少有一个vertex Shader 和 Fragment shader</p>
+</blockquote>
+<p>5.坐标轴，右手坐标系，跟 Android 的 Y 轴坐标刚好相反，这点要注意，后续的相关操作需要转换Y轴坐标<br>
+6. 图形绘制：OpenGL只能绘制基本的点、线、三角形，其他图形都是由这三个基本元素组成的(大部分都是大量的三角形组成，所以衡量 GPU 性能常用单位时间绘制三角形数量表示)</p>
+<h3 id="opengl-坐标">openGL 坐标</h3>
+<ol>
+<li>
+<p>OpenGL坐标系<br>
+<img src="https://mr-wangyong.github.io//post-images/1622542782569.png" alt="" loading="lazy"><br>
+与Android中的Canvas或者屏幕坐标体系不同，GL的坐标起始位置在屏幕中心，(0,0)作为中心点，X坐标从左到右，Y坐标从下到上，在[-1,1]之间取值，再映射到屏幕上。而超出[-1,1]范围的，将不会显示在屏幕上。而无论屏幕是什么大小，什么形状，坐标范围都是不变的。如下图。</p>
+</li>
+<li>
+<p>OpenGL ES纹理坐标<br>
+以左下角为原点(Android是以左上角为原点的)<br>
+<img src="https://mr-wangyong.github.io//post-images/1622543008883.png" alt="" loading="lazy"></p>
+</li>
+</ol>
+<h3 id="gles语言">GLES语言</h3>
+<p>顶点着色器的内建输入变量</p>
+<p>gl_Position：顶点坐标<br>
+gl_PointSize：点的大小，没有赋值则为默认值1</p>
+<p>片元着色器内建输出变量<br>
+gl_FragColor：当前片元颜色<br>
+1）在顶点着色器中，传入了一个vec4的顶点坐标xyzw，然后直接传递给内建变量gl_Position，即直接根据顶点坐标渲染，不再做位置变换。</p>
+<p>注：顶点坐标是在Java代码中传入的，后面会讲到，另外w是齐次坐标，2D渲染没有作用</p>
+<p>2）在片元着色器中，直接给gl_FragColor赋值，依然是一个vec4类型的数据，这里表示rgba颜色值，为红色</p>
+<p>这里讲的非常详细<br>
+<a href="https://www.jianshu.com/p/355137fa2817">顶点坐标和纹理坐标</a></p>
+<p>只有图片和视频才需要用到纹理坐标，其他的时候并没有什么用</p>
+<hr>
+<h2 id="实战开始-opengl-绘制之旅">实战，开始 OpenGL 绘制之旅</h2>
+<ul>
+<li>构建一个 GLSurfaceView</li>
+</ul>
+<pre><code>class GlActivity : AppCompatActivity() {
+
+    private lateinit var glSurfaceView: GLSurfaceView
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        glSurfaceView = GLSurfaceView(applicationContext)
+        setContentView(glSurfaceView)
+
+        // 设置 openGl 的类型 OpenGL ES 2.0
+        glSurfaceView.setEGLContextClientVersion(2)
+        // 设置 render
+        glSurfaceView.setRenderer(getRender())
+        // 设置渲染模式 一直渲染
+        glSurfaceView.renderMode = GLSurfaceView.RENDERMODE_CONTINUOUSLY
+
+    }
+
+    private fun getRender(): GLSurfaceView.Renderer? {
+        return PointsRender
+    }
+
+    override fun onResume() {
+        super.onResume()
+        glSurfaceView.onResume()
+    }
+
+    override fun onPause() {
+        super.onPause()
+        glSurfaceView.onPause()
+    }
+
+
+
+}
+</code></pre>
+<p>几个关键步骤：</p>
+<ol>
+<li>创建一个 GLSurfaceView, 然后GLSurfaceView中 openGL 的版本</li>
+<li>设置 Render, 这步骤是最重要的，所有的 openGL 相关代码都在 Render 生命周期内调用</li>
+<li>设置渲染模式，两种
+<ol>
+<li>GLSurfaceView主动刷新(continuously)，不停的回调Renderer的onDrawFrame</li>
+<li>被动刷新（when dirty），就是当请求刷新时才调一次onDrawFrame,调用方法为<code>glSurfaceView.requestRender()</code></li>
+</ol>
+</li>
+</ol>
+<pre><code>glSurfaceView.renderMode = GLSurfaceView.RENDERMODE_CONTINUOUSLY
+</code></pre>
+<p>我们这里为了方便，采用主动刷新</p>
+<h2 id="render-编写">Render 编写</h2>
+<p>这里也是最主要的内容<br>
+和 C 语言一样，分为 编写源码-&gt; 编译(compile)-&gt;链接(link)-&gt;运行/绘制(draw)</p>
+<h5 id="1-编写-render-源码">1. 编写 <strong>Render</strong> 源码</h5>
+<blockquote>
+<p>基本上都是一个固定的步骤<br>
+创建一个vertex shader 和 fragment Shader,用的是<a href="https://de.wikipedia.org/wiki/OpenGL_ES_Shading_Language">openGL ES Shading language</a>  shader 描述语言，和 C 语言十分相似，能够直接操作矩阵和向量，直接运行在GPU 之上</p>
+</blockquote>
+<pre><code>//指定 绘制中心点为0，0，0 最后一个在2D 环境下永远为1.0, pointSize 表示点的大小为20
+ private const val VERTEX_SHADER =
+            &quot;void main() {\n&quot; +
+                    &quot;gl_Position = vec4(0, 0, 0.0, 1.0);\n&quot; +
+                    &quot;gl_PointSize = 20.0;\n&quot; +
+                    &quot;}\n&quot;
+
+
+    //gl_FragColor是fragment shader的内置变量，用于指定当前顶点的颜色，
+    // 四个分量（r, g, b, a）。这里是想指定为红色，不透明。
+    private const val FRAGMENT_SHADER =
+            &quot;void main() {\n&quot; +
+                    &quot;gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);\n&quot; +
+                    &quot;}\n&quot;
+</code></pre>
+<blockquote>
+<p>shader 语言永远都有一个 main() 方法，<code>vec4</code> 为<a href="https://baike.baidu.com/item/%E9%BD%90%E6%AC%A1%E5%9D%90%E6%A0%87">齐次坐标</a>，<code>vec4</code>和<code>gl_PointSize</code>都是<code>vertex shader</code>内置变量, 可以直接使用，FragmentShader同理</p>
+</blockquote>
+<h5 id="2-编译-shder">2. 编译 shder</h5>
+<blockquote>
+<p>这一步主要把 shader源码隐射到 openGL 对象上(vsh)</p>
+</blockquote>
+<pre><code>// 创建一个vertex shader程序 返回值是一个句柄/程序指针 JNI 知识
+        val vsh = GLES20.glCreateShader(GLES20.GL_VERTEX_SHADER)
+        // 设置 vertex shader 源码
+
+        GLES20.glShaderSource(vsh, VERTEX_SHADER)
+        // 编译 vertex shader
+        GLES20.glCompileShader(vsh)
+        
+        val fsh = GLES20.glCreateShader(GLES20.GL_FRAGMENT_SHADER)
+        GLES20.glShaderSource(fsh, FRAGMENT_SHADER)
+        GLES20.glCompileShader(fsh)
+</code></pre>
+<h5 id="3-链接-shader">3. 链接 shader</h5>
+<blockquote>
+<p>这一步主要是把vertex shader 和Fragment shader融合到 programs，生成最后的渲染对象，代码也是固定的</p>
+</blockquote>
+<pre><code>// 创建shader program句柄
+        programs = GLES20.glCreateProgram()
+        GLES20.glAttachShader(programs, vsh)// 把vertex shader添加到program
+        GLES20.glAttachShader(programs, fsh)// 把fragment shader添加到program
+        GLES20.glLinkProgram(programs)
+</code></pre>
+<h5 id="4-检测是否成功">4. 检测是否成功</h5>
+<p>这一步不是必须的，但是一般都会这么做，<br>
+status 为0表示正常，最后是打印出 program 的信息</p>
+<pre><code>        GLES20.glValidateProgram(programs)  
+        val status = IntArray(1)
+        // 获取验证的状态 0为正常
+        GLES20.glGetProgramiv(programs, GLES20.GL_VALIDATE_STATUS, status, 0)
+
+        Log.d(TAG, &quot;validate shader program: &quot; + GLES20.glGetProgramInfoLog(programs))
+</code></pre>
+<h2 id="绘制-shader">绘制 shader</h2>
+<p>代码也基本上是固定的</p>
+<ol>
+<li>清除颜色缓冲区，清除上一帧的数据，防止脏数据</li>
+</ol>
+<pre><code>GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT)
+</code></pre>
+<ol start="2">
+<li>设置shader</li>
+</ol>
+<p>把之前的编译链接好的shader传入</p>
+<pre><code>GLES20.glUseProgram(programs)
+</code></pre>
+<ol start="3">
+<li>绘制 shader<br>
+因为只绘制一个点，所以传入1</li>
+</ol>
+<pre><code>GLES20.glDrawArrays(GLES20.GL_POINTS, 0, 1)
+</code></pre>
+<hr>
+<p>最后 贴一下总的代码</p>
+<h4 id="shader">shader</h4>
+<pre><code>object PointsRender : GLSurfaceView.Renderer {
+
+    
+    private const val VERTEX_SHADER =
+            &quot;void main() {\n&quot; +
+                    &quot;gl_Position = vec4(-0.5, 0.5, 0.0, 1.0);\n&quot; +
+                    &quot;gl_PointSize = 20.0;\n&quot; +
+                    &quot;}\n&quot;
+
+
+    private const val FRAGMENT_SHADER =
+            &quot;void main() {\n&quot; +
+                    &quot;gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);\n&quot; +
+                    &quot;}\n&quot;
+
+    private var programs: Int = -1
+
+
+    override fun onSurfaceCreated(gl: GL10?, config: EGLConfig?) {
+        GLES20.glClearColor(0f, 0f, 0f, 0f)
+
+        val vsh = GLES20.glCreateShader(GLES20.GL_VERTEX_SHADER)
+    
+        GLES20.glShaderSource(vsh, VERTEX_SHADER)
+        // 编译 vertex shader
+        GLES20.glCompileShader(vsh)
+
+        // 创建一个fragment shader程序
+        val fsh = GLES20.glCreateShader(GLES20.GL_FRAGMENT_SHADER)
+        GLES20.glShaderSource(fsh, FRAGMENT_SHADER)
+        GLES20.glCompileShader(fsh)
+
+        // 创建shader program句柄
+        programs = GLES20.glCreateProgram()
+        GLES20.glAttachShader(programs, vsh)// 把vertex shader添加到program
+        GLES20.glAttachShader(programs, fsh)// 把fragment shader添加到program
+        GLES20.glLinkProgram(programs)// 做链接，
+        GLES20.glValidateProgram(programs)  // 让OpenGL来验证一下我们的shader program，并获取验证的状态
+
+        val status = IntArray(1)
+        GLES20.glGetProgramiv(programs, GLES20.GL_VALIDATE_STATUS, status, 0)
+
+        Log.d(TAG, &quot;validate shader program: &quot; + GLES20.glGetProgramInfoLog(programs))
+    }
+
+
+    
+    override fun onSurfaceChanged(gl: GL10?, width: Int, height: Int) {
+        GLES20.glViewport(0, 0, width, height) // 参数是left, top, width, height
+    }
+
+
+    override fun onDrawFrame(gl: GL10?) {
+        GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT)// 清除颜色缓冲区
+        GLES20.glUseProgram(programs)
+        GLES20.glDrawArrays(GLES20.GL_POINTS, 0, 1)// 开始渲染，发送渲染点的指令
+    }
+
+
+}
+</code></pre>
+<h4 id="glsurfaceview">GLSurfaceView</h4>
+<pre><code>class GlActivity : AppCompatActivity() {
+
+    private lateinit var glSurfaceView: GLSurfaceView
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        glSurfaceView = GLSurfaceView(applicationContext)
+        setContentView(glSurfaceView)
+
+        // 设置 openGl 的类型 OpenGL ES 2.0
+        glSurfaceView.setEGLContextClientVersion(2)
+        // 设置 render
+        glSurfaceView.setRenderer(getRender())
+        // 设置渲染模式 一直渲染
+        glSurfaceView.renderMode = GLSurfaceView.RENDERMODE_CONTINUOUSLY
+    }
+
+    private fun getRender(): GLSurfaceView.Renderer? {
+        return PointsRender
+    }
+
+    override fun onResume() {
+        super.onResume()
+        glSurfaceView.onResume()
+    }
+
+    override fun onPause() {
+        super.onPause()
+        glSurfaceView.onPause()
+    }
+
+
+
+}
+</code></pre>
+<hr>
+<p>参考：</p>
+<blockquote>
+<p><a href="http://toughcoder.net/blog/2018/07/31/introduction-to-opengl-es-2-dot-0/">稀有猿诉 年轻人的第一篇OpenGL ES 2.0教程</a></p>
+</blockquote>
+<blockquote>
+<p><a href="https://blog.csdn.net/junzia/article/list/3">湖广午王 openGL  教程</a></p>
+</blockquote>
+<blockquote>
+<p><a href="https://blog.piasy.com/tags/#OpenGL">Piasy OpenGL 系列教程</a></p>
+</blockquote>
+<blockquote>
+<p><a href="http://wiki.jikexueyuan.com/project/opengl-es-guide/api.html">极客学院OpenGL教程</a></p>
+</blockquote>
+<pre><code>mGLSurfaceView.setEGLConfigChooser(8, 8, 8, 8, 16, 0);
+</code></pre>
+<p>选择自定义 EGLConfigChooser。<br>
+指定 red ,green, blue, alpha, depth ,stencil 支持的位数，缺省为 RGB_565 ,16 bit depth buffer。</p>
+<pre><code>setEGLConfigChooser (boolean)
+</code></pre>
+<p>选择一个 Config 接近 16bitRGB<br>
+颜色模式，可以打开或关闭深度(Depth)Buffer ,缺省为RGB_565 并打开至少有 16bit 的 depth Buffer。</p>
+]]></content>
+    </entry>
+</feed>
